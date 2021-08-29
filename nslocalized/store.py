@@ -19,26 +19,27 @@ IN_TARGET = 6
 EXPECTING_SEMICOLON = 7
 
 _c_escapes = {
-    'a': '\x07',
-    'b': '\x08',
-    'f': '\x0c',
-    'n': '\x0a',
-    'r': '\x0d',
-    't': '\x09',
-    'v': '\x0b'
+    "a": "\x07",
+    "b": "\x08",
+    "f": "\x0c",
+    "n": "\x0a",
+    "r": "\x0d",
+    "t": "\x09",
+    "v": "\x0b",
 }
-    
+
 _start_re = re.compile(r'\s*(?:/\*|//|")')
-_comment_re = re.compile(r'\*/')
+_comment_re = re.compile(r"\*/")
 _exp_key_re = re.compile(r'\s*"')
-_raw_key_re = re.compile(r'\s*([A-Za-z][A-Za-z0-9_]*)')
+_raw_key_re = re.compile(r"\s*([A-Za-z][A-Za-z0-9_]*)")
 _key_re = re.compile(r'(?:\\|")')
-_hex_re = re.compile(r'[A-Fa-f0-9]+')
-_oct_re = re.compile(r'[0-7]{1,3}')
-_u4_re = re.compile(r'[A-Fa-f0-9]{4}')
-_u8_re = re.compile(r'[A-Fa-f0-9]{8}')
-_equals_re = re.compile(r'\s*=\s*')
-_semi_re = re.compile(r'\s*;\s*')
+_hex_re = re.compile(r"[A-Fa-f0-9]+")
+_oct_re = re.compile(r"[0-7]{1,3}")
+_u4_re = re.compile(r"[A-Fa-f0-9]{4}")
+_u8_re = re.compile(r"[A-Fa-f0-9]{8}")
+_equals_re = re.compile(r"\s*=\s*")
+_semi_re = re.compile(r"\s*;\s*")
+
 
 class alsoconstruct(object):
     def __init__(self, method):
@@ -49,9 +50,10 @@ class alsoconstruct(object):
             obj = klass()
         return lambda *args, **kwargs: self.method(obj, *args, **kwargs)
 
+
 class LocalizedString(object):
-    __slots__ = ['source', 'target', 'comment']
-    
+    __slots__ = ["source", "target", "comment"]
+
     def __init__(self, source, target, comment=None):
         # The string to translate
         self.source = source
@@ -63,14 +65,23 @@ class LocalizedString(object):
         self.comment = comment
 
     def __eq__(self, other):
-        return self.source == other.source and self.target == other.target and self.comment == other.comment
+        return (
+            self.source == other.source
+            and self.target == other.target
+            and self.comment == other.comment
+        )
 
     def __ne__(self, other):
-        return self.source != other.source or self.target != other.target or self.comment != other.comment
-        
+        return (
+            self.source != other.source
+            or self.target != other.target
+            or self.comment != other.comment
+        )
+
     def __repr__(self):
-        return '%r' % self.target
-    
+        return "%r" % self.target
+
+
 class StringTable(object):
     def __init__(self, include_empty_comments=False):
         self.strings = {}
@@ -81,7 +92,7 @@ class StringTable(object):
 
     def __ne__(self, other):
         return self.strings != other.strings
-        
+
     def __getitem__(self, source):
         return self.strings[source].target
 
@@ -89,7 +100,7 @@ class StringTable(object):
         self.store(LocalizedString(source, target))
 
     def __repr__(self):
-        return '%r' % self.strings
+        return "%r" % self.strings
 
     def lookup(self, source):
         return self.strings.get(source, None)
@@ -99,7 +110,7 @@ class StringTable(object):
         if cur:
             if localized_string.comment:
                 if cur.comment:
-                    cur.comment += '\n' + localized_string.comment
+                    cur.comment += "\n" + localized_string.comment
                 else:
                     cur.comment = localized_string.comment
             cur.target = localized_string.target
@@ -111,27 +122,27 @@ class StringTable(object):
     @alsoconstruct
     def read(self, file_or_name, process_escapes=True):
         if isinstance(file_or_name, six.string_types):
-            buffered = io.open(file_or_name, 'rb')
-        elif getattr(file_or_name, 'peek', None):
+            buffered = io.open(file_or_name, "rb")
+        elif getattr(file_or_name, "peek", None):
             buffered = file_or_name
-        elif getattr(file_or_name, 'readable', None) is None:
-            buffered = io.open(file_or_name.fileno(), 'rb')
+        elif getattr(file_or_name, "readable", None) is None:
+            buffered = io.open(file_or_name.fileno(), "rb")
         else:
             buffered = io.BufferedReader(file_or_name)
-        
+
         maybe_bom = buffered.peek(2)[:2]
 
-        if maybe_bom == b'\xfe\xff':
-            encoding = 'utf_16_be'
+        if maybe_bom == b"\xfe\xff":
+            encoding = "utf_16_be"
             buffered.read(2)
-        elif maybe_bom == b'\xff\xfe':
-            encoding = 'utf_16_le'
+        elif maybe_bom == b"\xff\xfe":
+            encoding = "utf_16_le"
             buffered.read(2)
-        elif maybe_bom == b'\xef\xbb':
-            encoding = 'utf_8'
+        elif maybe_bom == b"\xef\xbb":
+            encoding = "utf_8"
             buffered.read(3)
         else:
-            encoding = 'utf_8'
+            encoding = "utf_8"
 
         reader_factory = codecs.getreader(encoding)
 
@@ -147,16 +158,16 @@ class StringTable(object):
         def handle_string(m, pos, state, next_state):
             skip_nl = False
             if m:
-                chunks.append(line[pos:m.start(0)])
+                chunks.append(line[pos : m.start(0)])
                 if m.group(0) == '"':
                     state = next_state
                     pos = m.end(0)
-                    return (state, pos, skip_nl, ''.join(chunks))
-                elif m.group(0) == '\\':
+                    return (state, pos, skip_nl, "".join(chunks))
+                elif m.group(0) == "\\":
                     pos = m.end(0)
                     ch = line[pos]
                     if not process_escapes:
-                        chunks.append('\\')
+                        chunks.append("\\")
                         chunks.append(ch)
                         pos += 1
                     elif pos == end:
@@ -164,23 +175,23 @@ class StringTable(object):
                     elif ch in _c_escapes:
                         chunks.append(_c_escapes[ch])
                         pos += 1
-                    elif ch in ('x', 'u', 'U'):
+                    elif ch in ("x", "u", "U"):
                         pos += 1
-                        if ch == 'x':
+                        if ch == "x":
                             hm = _hex_re.match(line, pos)
-                        elif ch == 'u':
+                        elif ch == "u":
                             hm = _u4_re.match(line, pos)
-                        elif ch == 'U':
+                        elif ch == "U":
                             hm = _u8_re.match(line, pos)
                         if hm:
                             cp = int(hm.group(0), 16)
-                            if cp >= 0xd800 and cp <= 0xdfff or cp > 0x10ffff:
-                                raise ValueError('Bad Unicode escape')
+                            if cp >= 0xD800 and cp <= 0xDFFF or cp > 0x10FFFF:
+                                raise ValueError("Bad Unicode escape")
                             chunks.append(uchr(cp))
                             pos = hm.end(0)
                         else:
-                            chunks.append('x')
-                    elif ch >= '0' and ch < '8':
+                            chunks.append("x")
+                    elif ch >= "0" and ch < "8":
                         hm = _oct_re.match(line, pos)
                         cp = int(hm.group(0), 8)
                         chunks.append(uchr(cp))
@@ -190,31 +201,31 @@ class StringTable(object):
                         pos += 1
             else:
                 chunks.append(line[pos:])
-                pos = end            
+                pos = end
 
             return (state, pos, skip_nl, None)
-        
+
         for line in reader:
             end = len(line)
             pos = 0
             if not skip_nl:
-                chunks.append('\n')
+                chunks.append("\n")
                 skip_nl = False
             while pos < end:
                 if state == EXPECTING_ITEM:
                     m = _start_re.match(line, pos)
                     if m:
-                        if m.group(0) == '/*':
+                        if m.group(0) == "/*":
                             state = IN_COMMENT
                             chunks = []
                             pos = m.end(0)
                             skip_nl = True
-                        elif m.group(0) == '//':
-                            comment_content = line[m.end(0):].strip()
+                        elif m.group(0) == "//":
+                            comment_content = line[m.end(0) :].strip()
                             if comment is None:
                                 comment = comment_content
                             else:
-                                comment += ' ' + comment_content
+                                comment += " " + comment_content
                             pos = end
                         elif m.group(0) == '"':
                             state = IN_KEY
@@ -226,16 +237,16 @@ class StringTable(object):
                             state = EXPECTING_EQUALS
                             key = m.group(1)
                             pos = m.end(1)
-                        elif line.strip() != '':
-                            raise ValueError('Unexpected garbage in input')
+                        elif line.strip() != "":
+                            raise ValueError("Unexpected garbage in input")
                         else:
                             pos = end
                 elif state == IN_COMMENT:
                     m = _comment_re.search(line, pos)
                     if m:
                         state = EXPECTING_KEY
-                        chunks.append(line[pos:m.start(0)].strip())
-                        comment = ' '.join(chunks).strip()
+                        chunks.append(line[pos : m.start(0)].strip())
+                        comment = " ".join(chunks).strip()
                         skip_nl = False
                         pos = m.end(0)
                     else:
@@ -256,16 +267,16 @@ class StringTable(object):
                         else:
                             pos = end
                 elif state == IN_KEY:
-                    state, pos, skip_nl, key \
-                      = handle_string(_key_re.search(line, pos),
-                                      pos, state, EXPECTING_EQUALS)
+                    state, pos, skip_nl, key = handle_string(
+                        _key_re.search(line, pos), pos, state, EXPECTING_EQUALS
+                    )
                 elif state == EXPECTING_EQUALS:
                     m = _equals_re.match(line, pos)
                     if m:
                         state = EXPECTING_TARGET
                         pos = m.end(0)
-                    elif line.strip() != '':
-                        raise ValueError('Missing equals')
+                    elif line.strip() != "":
+                        raise ValueError("Missing equals")
                 elif state == EXPECTING_TARGET:
                     m = _exp_key_re.match(line, pos)
                     if m:
@@ -275,9 +286,9 @@ class StringTable(object):
                     else:
                         pos = end
                 elif state == IN_TARGET:
-                    state, pos, skip_nl, target \
-                      = handle_string(_key_re.search(line, pos),
-                                      pos, state, EXPECTING_SEMICOLON)
+                    state, pos, skip_nl, target = handle_string(
+                        _key_re.search(line, pos), pos, state, EXPECTING_SEMICOLON
+                    )
                 elif state == EXPECTING_SEMICOLON:
                     m = _semi_re.match(line, pos)
                     if m:
@@ -287,17 +298,19 @@ class StringTable(object):
                         key = None
                         target = None
                         comment = None
-                    elif line.strip() != '':
-                        raise ValueError('Missing semicolon')
-                    
-        if state != EXPECTING_ITEM:
-            raise ValueError('Bad strings file')
+                    elif line.strip() != "":
+                        raise ValueError("Missing semicolon")
 
-        return self;
-        
-    def write(self, file_or_name, encoding='utf_16', escape_strings=True):
+        if state != EXPECTING_ITEM:
+            raise ValueError("Bad strings file")
+
+        return self
+
+    def write(
+        self, file_or_name, encoding="utf_16", escape_strings=True, with_comment=False
+    ):
         if isinstance(file_or_name, six.string_types):
-            file_or_name = io.open(file_or_name, 'wb')
+            file_or_name = io.open(file_or_name, "wb")
 
         writer_factory = codecs.getwriter(encoding)
 
@@ -305,9 +318,9 @@ class StringTable(object):
 
         # In the two endian specific formats, we need to explicitly write
         # the BOM.
-        if encoding in ('utf_16_be', 'utf_16_le'):
-            writer.write('\ufeff')
-        
+        if encoding in ("utf_16_be", "utf_16_le"):
+            writer.write("\ufeff")
+
         keys = self.strings.keys()
         if not isinstance(keys, list):
             keys = list(keys)
@@ -315,19 +328,14 @@ class StringTable(object):
 
         first = True
         for k in keys:
-            if first:
-                first = False
-            else:
-                writer.write('\n')
             ls = self.strings[k]
-            if ls.comment:
-                writer.write('/* %s */\n' % ls.comment)
-            elif self.include_empty_comments:
-                writer.write('/* No description */\n')
+            if with_comment and ls.comment:
+                writer.write("/* %s */\n" % ls.comment)
 
             if escape_strings:
-                writer.write('"%s" = "%s";\n'
-                             % (escape_string(ls.source),
-                                escape_string(ls.target)))
+                writer.write(
+                    '"%s" = "%s";\n'
+                    % (escape_string(ls.source), escape_string(ls.target))
+                )
             else:
                 writer.write('"%s" = "%s";\n' % (ls.source, ls.target))
